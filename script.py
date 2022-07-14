@@ -57,5 +57,14 @@ frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
 
 print("Frictional Offset: ",statistics.mean(frictional_offset))
 
+for file in list_of_files:
+  
+  #Ignore the test file
+  if "forward" in file or "reverse" in file:
+    continue
+  
+  file = pd.read_csv(filename, skiprows=1)
+  df = pd.DataFrame(file)
+  print(df.iloc[59]["Friction Coeff."])
 
 
