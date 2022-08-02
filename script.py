@@ -53,9 +53,10 @@ for file in list_of_files:
   print("\n==========\n")
   
   
-frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]  
+frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
+frictional_offset = statistics.mean(frictional_offset)
 
-print("Frictional Offset: ",statistics.mean(frictional_offset))
+print("Frictional Offset: ",frictional_offset)
 
 for file in list_of_files:
   
@@ -63,8 +64,13 @@ for file in list_of_files:
   if "forward" in file or "reverse" in file:
     continue
   
-  file = pd.read_csv(filename, skiprows=1)
+  file = pd.read_csv(file, skiprows=1)
   df = pd.DataFrame(file)
-  print(df.iloc[59]["Friction Coeff."])
+  
+  average = []
+  for i in range(59, 70):
+    average.append(float(df.iloc[i]["Friction Coeff."]))
+    
+  print(statistics.mean(average) - frictional_offset)
 
 
