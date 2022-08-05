@@ -26,7 +26,6 @@ for file in list_of_files:
 
     csv_avg = []
     filename = file
-    j = 30
     #Go through the csv file, creating a DataFrame for every 130 lines
     for i in range(0, 520, 130):
         file = pd.read_csv(filename, skiprows=1+i)
@@ -41,14 +40,12 @@ for file in list_of_files:
             forward.append(round(mean.mean(), 9))
         else:
             reverse.append(round(mean.mean(), 9))
-            
-        j += 30
+
 
 frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
 frictional_offset = statistics.mean(frictional_offset)
 
-print("Frictional Offset: ", frictional_offset)
-exit()
+print("\nFrictional Offset: ", frictional_offset, "\n")
 for file in list_of_files:
 
     #Ignore the test file
@@ -60,11 +57,15 @@ for file in list_of_files:
 
     while True:
         try:
-            columns = pd.read_csv(file, skiprows=i)
+
+            columns = pd.read_csv(file, skiprows=i*130)
             df = pd.DataFrame(columns)
             test_number = df.columns[1]
+            if int(test_number) % 30 != 0:
+                i += 1
+                continue
 
-            test_df = pd.read_csv(file, skiprows=i+1)
+            test_df = pd.read_csv(file, skiprows=i*130+1)
             df = pd.DataFrame(test_df)
 
             average = []
@@ -74,9 +75,9 @@ for file in list_of_files:
             print(statistics.mean(average))
 
             test_numbers_and_values[test_number] = abs(statistics.mean(average) - frictional_offset)
-            i += 130
+            i += 1
         except:
             break
 
 (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
-    .to_csv('dict_file.csv', header=False))
+ .to_csv('dict_file.csv', header=False))
