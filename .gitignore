@@ -1,4 +1,5 @@
 
 *.csv
+*.xls
 .~lock.dict_file.csv\#
 .Rhistory
