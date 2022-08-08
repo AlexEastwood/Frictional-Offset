@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import statistics
 import pandas as pd
@@ -10,8 +11,14 @@ path = sys.path[0]
 list_of_files = []
 for root, dirs, files in os.walk(path):
     for file in files:
-        if file.endswith(".csv"):
+        if file.endswith(".xls"):
             list_of_files.append(os.path.join(root, file))
+
+test_numbers = []
+for file in list_of_files: 
+    m = re.match(r"(.*)(_P\d+_)(.*)", file)
+    if m.group(2) not in test_numbers:
+        test_numbers.append(m.group(2))
 
 #Create arrays to store average coeffs in each file going forward or reverse
 forward = []
@@ -28,7 +35,7 @@ for file in list_of_files:
     filename = file
     #Go through the csv file, creating a DataFrame for every 130 lines
     for i in range(0, 520, 130):
-        file = pd.read_csv(filename, skiprows=1+i)
+        file = pd.read_excel(filename, engine='openpyxl')
         df = pd.DataFrame(file)
         mean = df["Friction Coeff."].head(65).astype(float)
 
@@ -79,5 +86,5 @@ for file in list_of_files:
         except:
             break
 
-(pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
- .to_csv('dict_file.csv', header=False))
+#(pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
+# .to_csv('dict_file.csv', header=False))
