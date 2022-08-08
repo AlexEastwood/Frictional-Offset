@@ -14,11 +14,11 @@ for root, dirs, files in os.walk(path):
         if file.endswith(".xls"):
             list_of_files.append(os.path.join(root, file))
 
-test_numbers = []
-for file in list_of_files: 
-    m = re.match(r"(.*)(_P\d+_)(.*)", file)
-    if m.group(2) not in test_numbers:
-        test_numbers.append(m.group(2))
+# test_numbers = []
+# for file in list_of_files: 
+#     m = re.match(r"(.*)(_P\d+_)(.*)", file)
+#     if m.group(2) not in test_numbers:
+#         test_numbers.append(m.group(2))
 
 #Create arrays to store average coeffs in each file going forward or reverse
 forward = []
@@ -35,7 +35,7 @@ for file in list_of_files:
     filename = file
     #Go through the csv file, creating a DataFrame for every 130 lines
     for i in range(0, 520, 130):
-        file = pd.read_excel(filename, engine='openpyxl')
+        file = pd.read_table(filename, skiprows=1+i)
         df = pd.DataFrame(file)
         mean = df["Friction Coeff."].head(65).astype(float)
 
@@ -47,12 +47,16 @@ for file in list_of_files:
             forward.append(round(mean.mean(), 9))
         else:
             reverse.append(round(mean.mean(), 9))
+        
 
+print(forward)
+print(reverse)
 
 frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
 frictional_offset = statistics.mean(frictional_offset)
 
 print("\nFrictional Offset: ", frictional_offset, "\n")
+exit()
 for file in list_of_files:
 
     #Ignore the test file
