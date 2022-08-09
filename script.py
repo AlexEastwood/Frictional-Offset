@@ -6,11 +6,11 @@ import pandas as pd
 #Set path to the current directory of the python script
 path = sys.path[0]
 
-#Find all .csv files in current and child directories
+#Find all .xls files in current and child directories
 list_of_files = []
 for root, dirs, files in os.walk(path):
     for file in files:
-        if file.endswith(".csv"):
+        if file.endswith(".xls"):
             list_of_files.append(os.path.join(root, file))
 
 #Create arrays to store average coeffs in each file going forward or reverse
@@ -24,25 +24,35 @@ for file in list_of_files:
     if "forward" not in file and "reverse" not in file:
         continue
 
-    csv_avg = []
+    xls_avg = []
     filename = file
-    j = 30
-    #Go through the csv file, creating a DataFrame for every 130 lines
-    for i in range(0, 520, 130):
-        file = pd.read_csv(filename, skiprows=1+i)
-        df = pd.DataFrame(file)
-        mean = df["Friction Coeff."].head(65).astype(float)
+    #Go through the xls file, creating a DataFrame for every 130 lines
+    i = 0
+    while True:
+        try:
+            columns = pd.read_table(filename, skiprows=i)
+            df = pd.DataFrame(columns)
+            test_number = int(''.join(c for c in str(df.columns).split(",")[1] if c.isdigit()))
+           
+            if test_number % 30 == 0:
+                file = pd.read_table(filename, skiprows=1+i)
+                df = pd.DataFrame(file)
+                mean = df["Friction Coeff."].head(65).astype(float)
 
-        #Average the Frictional Coeff. column to 9 decimal places
-        csv_avg.append(round(mean.mean(), 9))
+                #Average the Frictional Coeff. column to 9 decimal places
+                avg = round(mean.mean(), 9)
+                xls_avg.append(avg)
 
-        #Separate into forward and reverse arrays by reading filenames
-        if "forward" in filename.split("\\")[-1]:
-            forward.append(round(mean.mean(), 9))
-        else:
-            reverse.append(round(mean.mean(), 9))
+                #Separate into forward and reverse arrays by reading filenames
+                if "forward" in filename.split("\\")[-1]:
+                    forward.append(round(mean.mean(), 9))
+                else:
+                    reverse.append(round(mean.mean(), 9))
             
-        j += 30
+            i += 130
+        except:
+            break
+            
 
 frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
 frictional_offset = statistics.mean(frictional_offset)
@@ -79,4 +89,4 @@ for file in list_of_files:
             break
 
 (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
-    .to_csv('dict_file.csv', header=False))
+ .to_csv('dict_file.csv', header=False))
