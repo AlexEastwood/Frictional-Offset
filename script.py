@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import statistics
 import pandas as pd
@@ -12,6 +13,12 @@ for root, dirs, files in os.walk(path):
     for file in files:
         if file.endswith(".xls"):
             list_of_files.append(os.path.join(root, file))
+
+# test_numbers = []
+# for file in list_of_files: 
+#     m = re.match(r"(.*)(_P\d+_)(.*)", file)
+#     if m.group(2) not in test_numbers:
+#         test_numbers.append(m.group(2))
 
 #Create arrays to store average coeffs in each file going forward or reverse
 forward = []
@@ -57,7 +64,7 @@ for file in list_of_files:
 frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
 frictional_offset = statistics.mean(frictional_offset)
 
-print("Frictional Offset: ", frictional_offset)
+print("\nFrictional Offset: ", frictional_offset, "\n")
 exit()
 for file in list_of_files:
 
@@ -70,11 +77,15 @@ for file in list_of_files:
 
     while True:
         try:
-            columns = pd.read_csv(file, skiprows=i)
+
+            columns = pd.read_csv(file, skiprows=i*130)
             df = pd.DataFrame(columns)
             test_number = df.columns[1]
+            if int(test_number) % 30 != 0:
+                i += 1
+                continue
 
-            test_df = pd.read_csv(file, skiprows=i+1)
+            test_df = pd.read_csv(file, skiprows=i*130+1)
             df = pd.DataFrame(test_df)
 
             average = []
@@ -84,7 +95,7 @@ for file in list_of_files:
             print(statistics.mean(average))
 
             test_numbers_and_values[test_number] = abs(statistics.mean(average) - frictional_offset)
-            i += 130
+            i += 1
         except:
             break
 
