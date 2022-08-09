@@ -5,99 +5,109 @@ import statistics
 import pandas as pd
 
 #Set path to the current directory of the python script
-path = sys.path[0]
+#Find all files in current and child directories of the chosen extension
+def find_files_of_type(type):
+    path = sys.path[0]
+    list_of_files = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith("." + type):
+                list_of_files.append(os.path.join(root, file))
+    return list_of_files
 
-#Find all .xls files in current and child directories
-list_of_files = []
-for root, dirs, files in os.walk(path):
-    for file in files:
-        if file.endswith(".xls"):
-            list_of_files.append(os.path.join(root, file))
+def find_test_ids(list_of_files):
+    ids = []
+    for file in list_of_files: 
+        m = re.match(r"(.*)(_P\d+_\w?)(.*)", file)
+        if m.group(2) not in ids:
+            ids.append(m.group(2))
+    return ids
 
-# test_numbers = []
-# for file in list_of_files: 
-#     m = re.match(r"(.*)(_P\d+_)(.*)", file)
-#     if m.group(2) not in test_numbers:
-#         test_numbers.append(m.group(2))
+def find_test_number(file, i):
+    columns = pd.read_table(file, skiprows=i)
+    df = pd.DataFrame(columns)
+    test_number = int(''.join(c for c in str(df.columns)
+                        .split(",")[1] if c.isdigit()))
+    return test_number
 
-#Create arrays to store average coeffs in each file going forward or reverse
-forward = []
-reverse = []
+def find_frictional_offset(list_of_files, id):
 
+    #Create arrays to store average coeffs in each file going forward or reverse
+    forward = []
+    reverse = []
 
-for file in list_of_files:
+    for file in list_of_files:
+        if id not in file:
+            continue
+        #Ignore the test file
+        if "forward" not in file and "reverse" not in file:
+            continue
 
-    #Ignore the test file
-    if "forward" not in file and "reverse" not in file:
-        continue
-
-    xls_avg = []
-    filename = file
-    #Go through the xls file, creating a DataFrame for every 130 lines
-    i = 0
-    while True:
-        try:
-            columns = pd.read_table(filename, skiprows=i)
-            df = pd.DataFrame(columns)
-            test_number = int(''.join(c for c in str(df.columns).split(",")[1] if c.isdigit()))
-           
-            if test_number % 30 == 0:
-                file = pd.read_table(filename, skiprows=1+i)
-                df = pd.DataFrame(file)
-                mean = df["Friction Coeff."].head(65).astype(float)
-
-                #Average the Frictional Coeff. column to 9 decimal places
-                avg = round(mean.mean(), 9)
-                xls_avg.append(avg)
-
-                #Separate into forward and reverse arrays by reading filenames
-                if "forward" in filename.split("\\")[-1]:
-                    forward.append(round(mean.mean(), 9))
-                else:
-                    reverse.append(round(mean.mean(), 9))
+        #Go through the file, creating a DataFrame for every 130 lines
+        i = 0
+        while True:
+            try:
+                test_number = find_test_number(file, i)
             
-            i += 130
-        except:
-            break
-            
+                if test_number % 30 == 0:
+                    table = pd.read_table(file, skiprows=1+i)
+                    df = pd.DataFrame(table)
+                    mean = df["Friction Coeff."].head(65).astype(float)
 
-frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
-frictional_offset = statistics.mean(frictional_offset)
+                    #Average the Frictional Coeff. column to 9 decimal places
+                    avg = round(mean.mean(), 9)
 
-print("\nFrictional Offset: ", frictional_offset, "\n")
-exit()
-for file in list_of_files:
+                    #Separate into forward and reverse arrays by reading filenames
+                    if "forward" in file.split("\\")[-1]:
+                        forward.append(avg)
+                    else:
+                        reverse.append(avg)
+                
+                i += 130
+            except:
+                break
 
-    #Ignore the test file
-    if "forward" in file or "reverse" in file:
-        continue
+    frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
+    frictional_offset = statistics.mean(frictional_offset)
+    print("\nTest ID: ", id)
+    print("Frictional Offset: ", frictional_offset, "\n")
+    return frictional_offset
 
-    test_numbers_and_values = {}
-    i = 0
+list_of_files = find_files_of_type("xls")
+test_ids = find_test_ids(list_of_files)
+for id in test_ids:
+    frictional_offset = find_frictional_offset(list_of_files, id)
 
-    while True:
-        try:
+    for file in list_of_files:
+        if id in file:
 
-            columns = pd.read_csv(file, skiprows=i*130)
-            df = pd.DataFrame(columns)
-            test_number = df.columns[1]
-            if int(test_number) % 30 != 0:
-                i += 1
+            #Select only the test file
+            if "forward" in file or "reverse" in file:
                 continue
 
-            test_df = pd.read_csv(file, skiprows=i*130+1)
-            df = pd.DataFrame(test_df)
+            test_numbers_and_values = {}
+            i = 0
 
-            average = []
-            for j in range(59, 70):
-                average.append(float(df.iloc[j]["Friction Coeff."]))
+            while True:
+                try:
+                    test_number = find_test_number(file, i)
 
-            print(statistics.mean(average))
+                    if test_number % 30 == 0:
+                        test_df = pd.read_table(file, skiprows=i+1)
+                        df = pd.DataFrame(test_df)
 
-            test_numbers_and_values[test_number] = abs(statistics.mean(average) - frictional_offset)
-            i += 1
-        except:
-            break
+                        average = []
+                        for j in range(59, 70):
+                            average.append(float(df.iloc[j]["Friction Coeff."]))
 
-(pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
- .to_csv('dict_file.csv', header=False))
+                        print(statistics.mean(average))
+
+                        test_numbers_and_values[test_number] = abs(statistics.mean(average) - frictional_offset)
+                    i += 130
+                except:
+                    break
+
+        (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
+        .to_csv(id+".csv", header=False))
+        print("\n====================\n")
+
