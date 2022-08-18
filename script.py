@@ -52,7 +52,7 @@ def find_frictional_offset(list_of_files, id):
 
     for file in list_of_files:
         # Ignore files that are not relevant to the current ID, or the actual
-        # test file since the frictional coefficient is found just using 
+        # test file since the frictional coefficient is found just using
         # the "forward" and "reverse" files
         if id not in file:
             continue
@@ -92,6 +92,7 @@ def find_frictional_offset(list_of_files, id):
 
 list_of_files = find_files_of_type("xls")
 test_ids = find_test_ids(list_of_files)
+id_diameter = {"_P1_": 36, "_P4_": 31, "_P6_": 33, "_P7_": 30, "_P10_": 35,}
 for id in test_ids:
     if "D" in id:
         continue
@@ -165,7 +166,7 @@ for id in test_ids:
         if not os.path.exists("oinkers"):
             os.makedirs('oinkers')
         path = sys.path[0] + "\\oinkers"
-        
+
         frictional_offset = find_frictional_offset(list_of_files, id)
 
         for file in list_of_files:
@@ -188,14 +189,16 @@ for id in test_ids:
 
                             average = []
                             for j in range(59, 70):
-                                average.append(float(df.iloc[j]["Friction Coeff."]))
+                                average.append(float(df.iloc[j]["Friction Torque"]))
+                                
+                            radius = (id_diameter[id]/2) / 10**3
 
                             test_numbers_and_values[test_number] = abs(
-                                statistics.mean(average) - frictional_offset)
+                                (statistics.mean(average) / (radius * 640)) - frictional_offset)
                         i += 130
                     except:
                         break
-            
+
                 (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
-                .to_csv(os.path.join(path, id+".csv"), header=False))
+                 .to_csv(os.path.join(path, id+".csv"), header=False))
                 print("\n====================\n")
