@@ -17,8 +17,8 @@ def find_files_of_type(type):
 
 def find_test_ids(list_of_files):
     ids = []
-    for file in list_of_files: 
-        m = re.match(r"(.*)(_P\d+_\w?)(.*)", file)
+    for file in list_of_files:         
+        m = re.match(r"(.*)(_P\d+_|_\d+D_)(.*)", file)
         if m.group(2) not in ids:
             ids.append(m.group(2))
     return ids
@@ -29,6 +29,13 @@ def find_cycle(file, i):
     cycle = int(''.join(c for c in str(df.columns)
                         .split(",")[1] if c.isdigit()))
     return cycle
+
+def find_averages(list_name):
+            average_list = []
+            for i in range(0, len(list_name), 5):
+                average_list.append(statistics.mean(list_name[i:i+5]))
+            average_list.append(statistics.mean(average_list))
+            return average_list
 
 def find_frictional_offset(list_of_files, id):
 
@@ -77,39 +84,59 @@ list_of_files = find_files_of_type("xls")
 test_ids = find_test_ids(list_of_files)
 for id in test_ids:
     if "D" in id:
+        final_df = pd.DataFrame(index=["30-34",
+                                       "60-64", 
+                                       "90-94", 
+                                       "120-124",
+                                       "Mean"], 
+                                columns=["Forward Torque", 
+                                        "Forward Friction", 
+                                        "Reverse Torque", 
+                                        "Reverse Friction", 
+                                        "Average Torque", 
+                                        "Friction Coeff."])
+        
+        forward_friction = []
+        forward_torque = []
+        reverse_friction = []
+        reverse_torque = []
+        
         for file in list_of_files:
             if id in file:
-                
-                #Select only the test file
-                if "forward" in file or "reverse" in file:
-                    continue
 
-                test_cycles_and_values = {}
                 i = 0
                 while True:
-                    for j in range(0,5):
-                        try:
-                            cycle = find_cycle(file, i)
+                    try:
+                        test_df = pd.read_table(file, skiprows=i+1)
+                        df = pd.DataFrame(test_df)
+                        
+                        torque_average = []
+                        for k in range(59, 70):
+                            torque_average.append(float(df.iloc[k]["Friction Torque"]))
 
-                            test_df = pd.read_table(file, skiprows=i+1)
-                            df = pd.DataFrame(test_df)
-                            
-                            torque_average = []
-                            for k in range(59, 70):
-                                average.append(float(df.iloc[k]["Friction Torque"]))
+                        friction_average = []
+                        for k in range(59, 70):
+                            friction_average.append(float(df.iloc[k]["Friction Coeff."]))
+                        
+                        if "fowards" in file:
+                            forward_friction.append(statistics.mean(friction_average))
+                            forward_torque.append(statistics.mean(torque_average))
+                        else:
+                            reverse_friction.append(statistics.mean(friction_average))
+                            reverse_torque.append(statistics.mean(torque_average))
+                        i += 130
+                    except:
+                        break
+        
+        
+        final_df["Forward Friction"] = find_averages(forward_friction)
+        final_df["Forward Torque"] = find_averages(forward_torque)
+        final_df["Reverse Friction"] = find_averages(reverse_friction)
+        final_df["Reverse Torque"] = find_averages(reverse_torque)
+        print(final_df)
 
-                            friction_average = []
-                            for k in range(59, 70):
-                                average.append(float(df.iloc[k]["Friction Coeff."]))
-                                
-                            print(statistics.mean(average))
-
-                            test_cycles_and_values[cycle] = abs(statistics
-                                                                .mean(average) - frictional_offset)
-                            i += 130
-                        except:
-                            break
     else:
+        continue
         frictional_offset = find_frictional_offset(list_of_files, id)
 
         for file in list_of_files:
