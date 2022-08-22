@@ -35,7 +35,7 @@ def find_test_ids(list_of_files):
                     ids.append(m.group(2))
             else:
                 ids.append(m.group(2))
-                
+
     return ids
 
 
@@ -67,16 +67,16 @@ def degree(id, list_of_files):
 
     # Create dataframe containing the required index and column names
     final_df = pd.DataFrame(index=["30-34",
-                                    "60-64",
-                                    "90-94",
-                                    "120-124",
-                                    "Mean"],
+                                   "60-64",
+                                   "90-94",
+                                   "120-124",
+                                   "Mean"],
                             columns=["Forward Torque",
-                                        "Forward Friction",
-                                        "Reverse Torque",
-                                        "Reverse Friction",
-                                        "Average Torque",
-                                        "Friction Coeff."])
+                                     "Forward Friction",
+                                     "Reverse Torque",
+                                     "Reverse Friction",
+                                     "Average Torque",
+                                     "Friction Coeff."])
 
     forward_friction = []
     forward_torque = []
@@ -128,6 +128,112 @@ def degree(id, list_of_files):
     final_df.to_csv(os.path.join(path, id+".csv"))
     print(id + ".csv created!")
 
+
+def human(id, list_of_files, human_id_diameter):
+    if not os.path.exists("humans"):
+            os.makedirs('humans')
+    path = sys.path[0] + "\\humans"
+
+    print(id)
+    frictional_offset = find_frictional_offset(list_of_files, id)
+
+    for file in list_of_files:
+        if id in file:
+
+            # Select only the test file
+            if "forward" in file or "reverse" in file:
+                continue
+
+            for s in human_id_diameter.keys():
+                if s in id:
+                    diameter = human_id_diameter[s]
+                    break
+
+            test_numbers_and_values = {}
+            i = 0
+
+            while True:
+                try:
+                    test_number = find_cycle(file, i)
+
+                    if test_number < 1000:
+                        if test_number % 30 == 0:
+                            test_df = pd.read_table(file, skiprows=i+1)
+                            df = pd.DataFrame(test_df)
+
+                            average = []
+                            for j in range(59, 70):
+                                average.append(float(df.iloc[j]["Friction Torque"]))
+
+                            radius = (diameter/2) / 10**3
+
+                            test_numbers_and_values[test_number] = abs(
+                                (statistics.mean(average) / (radius * 640)) - frictional_offset)
+                        i += 130
+                    else:
+                        if test_number % 50 == 0:
+                            test_df = pd.read_table(file, skiprows=i+1)
+                            df = pd.DataFrame(test_df)
+
+                            average = []
+                            for j in range(59, 70):
+                                average.append(float(df.iloc[j]["Friction Torque"]))
+
+                            radius = (diameter/2) / 10**3
+
+                            test_numbers_and_values[test_number] = abs(
+                                (statistics.mean(average) / (radius * 640)) - frictional_offset)
+                        i += 130
+                except:
+                    break
+
+            print("Creating: ", id, ".csv")
+            (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
+             .to_csv(os.path.join(path, id+".csv"), header=False))
+
+
+def oinkers(id, list_of_files, id_diameter):
+    if not os.path.exists("oinkers"):
+            os.makedirs('oinkers')
+    path = sys.path[0] + "\\oinkers"
+
+    frictional_offset = find_frictional_offset(list_of_files, id)
+
+    for file in list_of_files:
+        if id in file:
+
+            # Select only the test file
+            if "forward" in file or "reverse" in file:
+                continue
+
+            test_numbers_and_values = {}
+            i = 0
+
+            while True:
+                try:
+                    test_number = find_cycle(file, i)
+
+                    if test_number % 30 == 0:
+                        test_df = pd.read_table(file, skiprows=i+1)
+                        df = pd.DataFrame(test_df)
+
+                        average = []
+                        for j in range(59, 70):
+                            average.append(float(df.iloc[j]["Friction Torque"]))
+
+                        radius = (id_diameter[id]/2) / 10**3
+
+                        test_numbers_and_values[test_number] = abs(
+                            (statistics.mean(average) / (radius * 640)) - frictional_offset)
+                    i += 130
+                except:
+                    break
+
+            print("Creating: ", id, ".csv")
+            (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
+             .to_csv(os.path.join(path, id+".csv"), header=False))
+
+
 def find_frictional_offset(list_of_files, id):
     forward = []
     reverse = []
@@ -165,7 +271,7 @@ def find_frictional_offset(list_of_files, id):
                 i += 130
             except:
                 break
-    
+
     # Average all values together to get frictional offset
     frictional_offset = [statistics.mean(forward), statistics.mean(reverse)]
     frictional_offset = statistics.mean(frictional_offset)
@@ -179,113 +285,12 @@ human_id_diameter = pd.read_excel("A_Canden_Human_Tissue_Testing_Plan.xlsx")
 human_id_diameter = human_id_diameter.set_index("Sample ID").to_dict()["Diameter of talus"]
 
 for id in test_ids:
-    
     if "D_" in id:
-        continue
         degree(id, list_of_files)
     elif "ANK" in id:
-        if not os.path.exists("humans"):
-            os.makedirs('humans')
-        path = sys.path[0] + "\\humans"
-        
-        print(id)
-        frictional_offset = find_frictional_offset(list_of_files, id)
-        
-        for file in list_of_files:
-            if id in file:
-
-                # Select only the test file
-                if "forward" in file or "reverse" in file:
-                    continue
-
-                for s in human_id_diameter.keys():
-                    if s in id:
-                        diameter = human_id_diameter[s]
-                        break
-                    
-                test_numbers_and_values = {}
-                i = 0
-
-                while True:
-                    try:
-                        test_number = find_cycle(file, i)
-
-                        if test_number < 1000:
-                            if test_number % 30 == 0:
-                                test_df = pd.read_table(file, skiprows=i+1)
-                                df = pd.DataFrame(test_df)
-
-                                average = []
-                                for j in range(59, 70):
-                                    average.append(float(df.iloc[j]["Friction Torque"]))
-                                    
-                                radius = (diameter/2) / 10**3
-
-                                test_numbers_and_values[test_number] = abs(
-                                    (statistics.mean(average) / (radius * 640)) - frictional_offset)
-                            i += 130
-                        else:
-                            if test_number % 50 == 0:
-                                test_df = pd.read_table(file, skiprows=i+1)
-                                df = pd.DataFrame(test_df)
-
-                                average = []
-                                for j in range(59, 70):
-                                    average.append(float(df.iloc[j]["Friction Torque"]))
-                                    
-                                radius = (diameter/2) / 10**3
-
-                                test_numbers_and_values[test_number] = abs(
-                                    (statistics.mean(average) / (radius * 640)) - frictional_offset)
-                            i += 130
-                    except:
-                        break
-
-                print("Creating: ", id, ".csv")
-                (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
-                 .to_csv(os.path.join(path, id+".csv"), header=False))
-    
+        human(id, list_of_files, human_id_diameter)
     else:
-        continue
-        if not os.path.exists("oinkers"):
-            os.makedirs('oinkers')
-        path = sys.path[0] + "\\oinkers"
-
-        frictional_offset = find_frictional_offset(list_of_files, id)
-
-        for file in list_of_files:
-            if id in file:
-
-                # Select only the test file
-                if "forward" in file or "reverse" in file:
-                    continue
-
-                test_numbers_and_values = {}
-                i = 0
-
-                while True:
-                    try:
-                        test_number = find_cycle(file, i)
-
-                        if test_number % 30 == 0:
-                            test_df = pd.read_table(file, skiprows=i+1)
-                            df = pd.DataFrame(test_df)
-
-                            average = []
-                            for j in range(59, 70):
-                                average.append(float(df.iloc[j]["Friction Torque"]))
-                                
-                            radius = (id_diameter[id]/2) / 10**3
-
-                            test_numbers_and_values[test_number] = abs(
-                                (statistics.mean(average) / (radius * 640)) - frictional_offset)
-                        i += 130
-                    except:
-                        break
-
-                (pd.DataFrame.from_dict(data=test_numbers_and_values, orient='index')
-                 .to_csv(os.path.join(path, id+".csv"), header=False))
-                print("\n====================\n")
+        oinkers(id, list_of_files, id_diameter)
 
 exit()
 for id in test_ids:
@@ -300,17 +305,17 @@ for id in test_ids:
                         if test_number == 90:
                             test_df = pd.read_table(file, skiprows=i+1)
                             df = pd.DataFrame(test_df)
-                            
+
                             index = df["Index"].head(128).tolist()
                             index = [int(j) for j in index]
                             motor_position = df["Motor Position"].head(128).tolist()
                             motor_position = [float(j) for j in motor_position]
-                            
+
                             plt.axes().spines["bottom"].set_position(("data", 0))
                             plt.scatter(index, motor_position)
                             plt.show()
                             exit()
-                        
+
                         i += 130
                     except:
                         break
