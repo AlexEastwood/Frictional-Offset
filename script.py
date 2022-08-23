@@ -22,7 +22,7 @@ def find_files_of_type(type):
 def find_test_ids(list_of_files):
     ids = []
     for file in list_of_files:
-        m = re.match(r"(.*)(_P\d+_|_\d+D_)(.*)", file)
+        m = re.match(r"(.*)(_P\d+_|_\d+D.*z_)(.*)", file)
         if m:
             if m.group(2) not in ids:
                 ids.append(m.group(2))
@@ -48,6 +48,7 @@ def find_cycle(file, i):
                         .split(",")[1] if c.isdigit()))
     return cycle
 
+
 # Groups values into sets of 5 and averages each set, then averages them all
 # together and appends that mean value to the end of the list
 def find_averages(list_name):
@@ -64,6 +65,7 @@ def degree(id, list_of_files):
         path = sys.path[0] + "\\degrees"
     else:
         path = sys.path[0] + "\\degrees"
+
 
     # Create dataframe containing the required index and column names
     final_df = pd.DataFrame(index=["30-34",
@@ -278,45 +280,66 @@ def find_frictional_offset(list_of_files, id):
 
     return frictional_offset
 
-list_of_files = find_files_of_type("xls")
-test_ids = find_test_ids(list_of_files)
-id_diameter = {"_P1_": 36, "_P4_": 31, "_P6_": 33, "_P7_": 30, "_P10_": 35}
-human_id_diameter = pd.read_excel("A_Canden_Human_Tissue_Testing_Plan.xlsx")
-human_id_diameter = human_id_diameter.set_index("Sample ID").to_dict()["Diameter of talus"]
 
-for id in test_ids:
-    if "D_" in id:
-        degree(id, list_of_files)
-    elif "ANK" in id:
-        human(id, list_of_files, human_id_diameter)
-    else:
-        oinkers(id, list_of_files, id_diameter)
+class Test:
+       def __init__(self, name, direction, column):
+           self.name = name
+           self.direction = direction
+           self.column = column
 
-exit()
-for id in test_ids:
-    if "D" in id:
-        for file in list_of_files:
-            if id in file and "fowards" in file:
-                i = 0
-                while True:
-                    try:
-                        test_number = find_cycle(file, i)
+if __name__ == "__main__":
+    list_of_files = find_files_of_type("xls")
+    test_ids = find_test_ids(list_of_files)
+    # id_diameter = {"_P1_": 36, "_P4_": 31, "_P6_": 33, "_P7_": 30, "_P10_": 35}
+    # human_id_diameter = pd.read_excel("A_Canden_Human_Tissue_Testing_Plan.xlsx")
+    # human_id_diameter = human_id_diameter.set_index("Sample ID").to_dict()["Diameter of talus"]
 
-                        if test_number == 90:
-                            test_df = pd.read_table(file, skiprows=i+1)
-                            df = pd.DataFrame(test_df)
+    # for id in test_ids:
+    #     if "D_" in id:
+    #         degree(id, list_of_files)
+    #     elif "ANK" in id:
+    #         human(id, list_of_files, human_id_diameter)
+    #     else:
+    #         oinkers(id, list_of_files, id_diameter)
 
-                            index = df["Index"].head(128).tolist()
-                            index = [int(j) for j in index]
-                            motor_position = df["Motor Position"].head(128).tolist()
-                            motor_position = [float(j) for j in motor_position]
+    mp_forward = Test("mp_forward", "fowards", "Motor Position")
+    mp_reverse = Test("mp_reverse", "reverse", "Motor Position")
+    ft_forward = Test("ft_forward", "fowards", "Friction Torque")
+    ft_reverse = Test("ft_reverse", "reverse", "Friction Torque")
+           
+    tests = [mp_forward, mp_reverse, ft_forward, ft_reverse]
+    
+    for test in tests:
+        plt.axes().spines["bottom"].set_position(("data", 0))
+        for id in test_ids:
+            if "D_" in id:
+                for file in list_of_files:
+                    if id in file and test.direction in file:
+                        i = 0
+                        while True:
+                            try:
+                                test_number = find_cycle(file, i)
 
-                            plt.axes().spines["bottom"].set_position(("data", 0))
-                            plt.scatter(index, motor_position)
-                            plt.show()
-                            exit()
+                                if test_number == 90:
+                                    test_df = pd.read_table(file, skiprows=i+1)
+                                    df = pd.DataFrame(test_df)
 
-                        i += 130
-                    except:
-                        break
-                
+                                    index = df["Index"].head(128).tolist()
+                                    index = [int(j) for j in index]
+                                    motor_position = df[test.column].head(128).tolist()
+                                    motor_position = [float(j) for j in motor_position]
+
+                                    label = id.strip("_")
+                                    label = label.replace("_", " @ ", 1)
+                                    label = label.replace("_", ".")
+                                    plt.scatter(index, motor_position, label=label)
+                                    
+
+                                i += 130
+                            except:
+                                break
+            
+        plt.legend()                
+        plt.savefig(test.name + ".png")
+        plt.close()            
+                    

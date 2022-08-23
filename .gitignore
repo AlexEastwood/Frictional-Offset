@@ -2,5 +2,6 @@
 *.csv
 *.DS_Store
 *.xlsx
+*.png
 .~lock.dict_file.csv\#
 .Rhistory
