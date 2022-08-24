@@ -2,7 +2,9 @@ import os
 import re
 import sys
 import statistics
+from tkinter import font
 import pandas as pd
+
 import matplotlib.pyplot as plt
 
 
@@ -22,19 +24,22 @@ def find_files_of_type(type):
 def find_test_ids(list_of_files):
     ids = []
     for file in list_of_files:
-        m = re.match(r"(.*)(_P\d+_|_\d+D.*z_)(.*)", file)
+        m = re.match(r"(.*)(_\d+D.*z_)(.*)", file)
         if m:
             if m.group(2) not in ids:
                 ids.append(m.group(2))
     for file in list_of_files:
-        m = re.match(r"(.*)(\w{2}ANK.*)(.xls)", file)
+        m = re.match(r"(.*)(_P\d+_.*|\w{2}ANK.*)(\.xls)", file)
         if m:
             if "forward" in file or "reverse" in file:
-                m = re.match(r"(.*)(\w{2}ANK.*)(_forward.*|_reverse.*)", file)
+                m = re.match(r"(.*)(_P\d+_.*|\w{2}ANK.*)(_forward.*|_reverse.*)", file)
                 if m.group(2) not in ids:
                     ids.append(m.group(2))
             else:
                 ids.append(m.group(2))
+
+    for id in ids:
+        print(id)
 
     return ids
 
@@ -290,17 +295,29 @@ class Test:
 if __name__ == "__main__":
     list_of_files = find_files_of_type("xls")
     test_ids = find_test_ids(list_of_files)
-    # id_diameter = {"_P1_": 36, "_P4_": 31, "_P6_": 33, "_P7_": 30, "_P10_": 35}
-    # human_id_diameter = pd.read_excel("A_Canden_Human_Tissue_Testing_Plan.xlsx")
-    # human_id_diameter = human_id_diameter.set_index("Sample ID").to_dict()["Diameter of talus"]
+    id_diameter = {"_P1_Healthy": 36,
+                   "_P1_Defect": 36,
+                   "_P4_Healthy": 31,
+                   "_P4_Defect": 31,
+                   "_P6_Healthy": 33,
+                   "_P6_Defect": 33,
+                   "_P7_Healthy": 30,
+                   "_P7_Defect": 30,
+                   "_P10_Healthy": 35,
+                   "_P10_Defect": 35}
+    human_id_diameter = pd.read_excel("A_Canden_Human_Tissue_Testing_Plan.xlsx")
+    human_id_diameter = human_id_diameter.set_index("Sample ID").to_dict()["Diameter of talus"]
 
-    # for id in test_ids:
-    #     if "D_" in id:
-    #         degree(id, list_of_files)
-    #     elif "ANK" in id:
-    #         human(id, list_of_files, human_id_diameter)
-    #     else:
-    #         oinkers(id, list_of_files, id_diameter)
+    for id in test_ids:
+        if "D_" in id:
+            continue
+            degree(id, list_of_files)
+        elif "ANK" in id:
+            continue
+            human(id, list_of_files, human_id_diameter)
+        else:
+            continue
+            oinkers(id, list_of_files, id_diameter)
 
     mp_forward = Test("mp_forward", "fowards", "Motor Position")
     mp_reverse = Test("mp_reverse", "reverse", "Motor Position")
@@ -332,14 +349,17 @@ if __name__ == "__main__":
                                     label = id.strip("_")
                                     label = label.replace("_", " @ ", 1)
                                     label = label.replace("_", ".")
-                                    plt.scatter(index, motor_position, label=label)
+                                    plt.scatter(index, motor_position, label=label, s=5)
                                     
 
                                 i += 130
                             except:
                                 break
-            
-        plt.legend()                
-        plt.savefig(test.name + ".png")
+        
+        plt.legend(loc="lower center", ncol=2, bbox_to_anchor =(0.5,-0.27))    
+        plt.xlabel('Index')
+        plt.ylabel(test.column)
+        plt.tight_layout() 
+        plt.savefig(test.name + ".png", dpi=500)
         plt.close()            
                     
