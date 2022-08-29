@@ -350,8 +350,6 @@ if __name__ == "__main__":
                                     label = label.replace("_", " @ ", 1)
                                     label = label.replace("_", ".")
                                     plt.scatter(index, motor_position, label=label, s=5)
-                                    
-
                                 i += 130
                             except:
                                 break
