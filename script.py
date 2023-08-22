@@ -307,6 +307,8 @@ if __name__ == "__main__":
                    "_P10_Defect": 35}
     human_id_diameter = pd.read_excel("A_Canden_Human_Tissue_Testing_Plan.xlsx")
     human_id_diameter = human_id_diameter.set_index("Sample ID").to_dict()["Diameter of talus"]
+    
+    colours = {"_5D_2Hz_":"#EDDAEB", "_6D_1_67Hz_":"#D6BBCF", "_7D_1_43Hz_":"#AD8CAE", "_8D_1_25Hz_":"#4F93B8", "_9D_1_1Hz_":"#306489", "_10D_1Hz_":"#222B4C"}
 
     for id in test_ids:
         if "D_" in id:
@@ -347,17 +349,25 @@ if __name__ == "__main__":
                                     motor_position = [float(j) for j in motor_position]
 
                                     label = id.strip("_")
-                                    label = label.replace("_", " @ ", 1)
+                                    label = label.replace("_", " ", 1)
                                     label = label.replace("_", ".")
-                                    plt.scatter(index, motor_position, label=label, s=5)
+                                    label = label.replace("D", "° F/E")
+                                    plt.scatter(index, motor_position, label=label, s=2, color=colours[id])
                                 i += 130
                             except:
                                 break
         
-        plt.legend(loc="lower center", ncol=2, bbox_to_anchor =(0.5,-0.27))    
+        handles, labels = plt.gca().get_legend_handles_labels()
+        order = [1, 2, 3, 4, 5, 0]
+        plt.legend([handles[i] for i in order], [labels[i] for i in order], loc="center left", bbox_to_anchor=(1, 0.5), frameon=False, title="Condition")
         plt.xlabel('Index')
         plt.ylabel(test.column)
+        
+        ymin, ymax = plt.gca().get_ylim()
+        plt.axhline(y=ymin, color='black', linestyle='-')
+        
         plt.tight_layout() 
-        plt.savefig(test.name + ".png", dpi=500)
+        plt.savefig(test.name + ".tiff", dpi=1000)
+        
         plt.close()            
-                    
+                     
